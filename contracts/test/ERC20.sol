@@ -1,9 +1,11 @@
-pragma solidity =0.5.16;
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-import '../PancakeERC20.sol';
+pragma solidity ^0.7.4;
 
-contract ERC20 is PancakeERC20 {
-    constructor(uint _totalSupply) public {
+import '../DPexBEP20.sol';
+
+contract ERC20 is DPexBEP20 {
+    constructor(uint _totalSupply) {
         _mint(msg.sender, _totalSupply);
     }
 }

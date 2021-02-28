@@ -1,43 +1,44 @@
 import { Contract, Wallet } from 'ethers'
-import { Web3Provider } from 'ethers/providers'
+import { providers } from 'ethers'
 import { deployContract } from 'ethereum-waffle'
 
 import { expandTo18Decimals } from './utilities'
 
-import ERC20 from '../../build/ERC20.json'
-import PancakeFactory from '../../build/PancakeFactory.json'
-import PancakePair from '../../build/PancakePair.json'
+import { DPexFactory, DPexPair, IBEP20 } from '../../typechain'
+import ERC20Abi from '../../artifacts/contracts/test/ERC20.sol/ERC20.json'
+import DPexFactoryAbi from '../../artifacts/contracts/DPexFactory.sol/DPexFactory.json'
+import DPexPairAbi from '../../artifacts/contracts/DPexPair.sol/DPexPair.json'
 
 interface FactoryFixture {
-  factory: Contract
+  factory: DPexFactory
 }
 
 const overrides = {
   gasLimit: 9999999
 }
 
-export async function factoryFixture(_: Web3Provider, [wallet]: Wallet[]): Promise<FactoryFixture> {
-  const factory = await deployContract(wallet, PancakeFactory, [wallet.address], overrides)
+export async function factoryFixture([wallet]: Wallet[], _: providers.Web3Provider): Promise<FactoryFixture> {
+  const factory = await deployContract(wallet, DPexFactoryAbi, [wallet.address], overrides) as DPexFactory
   return { factory }
 }
 
 interface PairFixture extends FactoryFixture {
-  token0: Contract
-  token1: Contract
-  pair: Contract
+  token0: IBEP20
+  token1: IBEP20
+  pair: DPexPair
 }
 
-export async function pairFixture(provider: Web3Provider, [wallet]: Wallet[]): Promise<PairFixture> {
-  const { factory } = await factoryFixture(provider, [wallet])
+export async function pairFixture([wallet]: Wallet[], provider: providers.Web3Provider): Promise<PairFixture> {
+  const { factory } = await factoryFixture([wallet], provider)
 
-  const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
-  const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
+  const tokenA = await deployContract(wallet, ERC20Abi, [expandTo18Decimals(10000)], overrides) as IBEP20
+  const tokenB = await deployContract(wallet, ERC20Abi, [expandTo18Decimals(10000)], overrides) as IBEP20
 
   await factory.createPair(tokenA.address, tokenB.address, overrides)
   const pairAddress = await factory.getPair(tokenA.address, tokenB.address)
-  const pair = new Contract(pairAddress, JSON.stringify(PancakePair.abi), provider).connect(wallet)
+  const pair = new Contract(pairAddress, JSON.stringify(DPexPairAbi.abi), provider).connect(wallet) as DPexPair
 
-  const token0Address = (await pair.token0()).address
+  const token0Address = (await pair.token0())
   const token0 = tokenA.address === token0Address ? tokenA : tokenB
   const token1 = tokenA.address === token0Address ? tokenB : tokenA
 
