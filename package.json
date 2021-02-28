@@ -1,7 +1,7 @@
 {
   "name": "@passive-income/dpex-swap-core",
   "description": "🎛 Core contracts for the dpex protocol",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "homepage": "http://dpex.passive-income.io",
   "private": false,
   "repository": {
@@ -12,8 +12,10 @@
     "registry": "http://registry.npmjs.org"
   },
   "files": [
+    "abi",
+    "artifacts",
     "contracts",
-    "build"
+    "typechain"
   ],
   "engines": {
     "node": ">=10"
