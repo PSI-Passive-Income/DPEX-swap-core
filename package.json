@@ -1,7 +1,7 @@
 {
   "name": "@passive-income/dpex-swap-core",
   "description": "🎛 Core contracts for the dpex protocol",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "homepage": "http://dpex.passive-income.io",
   "private": false,
   "repository": {
@@ -54,7 +54,7 @@
   "scripts": {
     "lint": "yarn prettier ./test/*.ts --check",
     "lint:fix": "yarn prettier ./test/*.ts --write",
-    "clean": "rimraf ./build/",
+    "clean": "rimraf ./abi/ && rimraf ./artifacts/ && rimraf ./cache/ && rimraf ./typechain/",
     "precompile": "yarn clean",
     "compile": "hardhat compile",
     "pretest": "yarn compile",
