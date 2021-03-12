@@ -1,6 +1,6 @@
 import chai, { expect } from 'chai'
-import { solidity, MockProvider, createFixtureLoader } from 'ethereum-waffle'
 import { BigNumber, constants } from 'ethers'
+import { ethers, network, waffle } from 'hardhat'
 
 import { expandTo18Decimals, mineBlock, encodePrice } from './shared/utilities'
 import { pairFixture } from './shared/fixtures'
@@ -9,14 +9,14 @@ import { DPexFactory, DPexPair, IBEP20 } from '../typechain'
 
 const MINIMUM_LIQUIDITY = BigNumber.from(10).pow(3)
 
-chai.use(solidity)
+chai.use(waffle.solidity)
 
 const overrides = {
-  gasLimit: 9999999
+  gasLimit: 9500000
 }
 
 describe('DPexPair', () => {
-  const provider = new MockProvider({ ganacheOptions: { gasLimit: 9999999 }})
+  const { provider, createFixtureLoader } = waffle;
   const [wallet, other] = provider.getWallets()
   const loadFixture = createFixtureLoader([wallet], provider)
 
@@ -87,7 +87,7 @@ describe('DPexPair', () => {
   })
 
   const optimisticTestCases: BigNumber[][] = [
-    ['998000000000000000', 5, 10, 1], // given amountIn, amountOut = floor(amountIn * .998)
+    ['998000000000000000', 5, 10, 1], // given amountIn, amountOut = floor(amountIn * .997)
     ['998000000000000000', 10, 5, 1],
     ['998000000000000000', 5, 5, 1],
     [1, 5, 5, '1002004008016032065'] // given amountOut, amountIn = ceiling(amountOut / .998)
@@ -162,16 +162,17 @@ describe('DPexPair', () => {
     await addLiquidity(token0Amount, token1Amount)
 
     // ensure that setting price{0,1}CumulativeLast for the first time doesn't affect our gas math
-    await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
+    await mineBlock((await provider.getBlock('latest')).timestamp + 1)
     await pair.sync(overrides)
 
     const swapAmount = expandTo18Decimals(1)
     const expectedOutputAmount = BigNumber.from('453305446940074565')
     await token1.transfer(pair.address, swapAmount)
-    await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
+    await mineBlock((await provider.getBlock('latest')).timestamp + 1)
+    
     const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(73495)
+    expect(receipt.gasUsed).to.eq(73627)
   })
 
   it('burn', async () => {
@@ -204,36 +205,43 @@ describe('DPexPair', () => {
   })
 
   it('price{0,1}CumulativeLast', async () => {
-    const token0Amount = expandTo18Decimals(3)
-    const token1Amount = expandTo18Decimals(3)
-    await addLiquidity(token0Amount, token1Amount)
+    try {
+      const token0Amount = expandTo18Decimals(3)
+      const token1Amount = expandTo18Decimals(3)
+      await addLiquidity(token0Amount, token1Amount)
 
-    const blockTimestamp = (await pair.getReserves())[2]
-    await mineBlock(provider, blockTimestamp + 1)
-    await pair.sync(overrides)
+      await provider.send("evm_setAutomine", [false])
+      const blockTimestamp = (await pair.getReserves())[2]
+      await pair.sync(overrides)
+      await mineBlock(blockTimestamp + 1)
 
-    const initialPrice = encodePrice(token0Amount, token1Amount)
-    expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0])
-    expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1])
-    expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 1)
+      const initialPrice = encodePrice(token0Amount, token1Amount)
+      expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0])
+      expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1])
+      expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 1)
 
-    const swapAmount = expandTo18Decimals(3)
-    await token0.transfer(pair.address, swapAmount)
-    await mineBlock(provider, blockTimestamp + 10)
-    // swap to a new price eagerly instead of syncing
-    await pair.swap(0, expandTo18Decimals(1), wallet.address, '0x', overrides) // make the price nice
+      const swapAmount = expandTo18Decimals(3)
+      await token0.transfer(pair.address, swapAmount)
+      await mineBlock(blockTimestamp + 9)
 
-    expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10))
-    expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10))
-    expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 10)
+      await pair.swap(0, expandTo18Decimals(1), wallet.address, '0x', overrides) // make the price nice
+      await mineBlock()
 
-    await mineBlock(provider, blockTimestamp + 20)
-    await pair.sync(overrides)
+      expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10))
+      expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10))
+      expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 10)
 
-    const newPrice = encodePrice(expandTo18Decimals(6), expandTo18Decimals(2))
-    expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10).add(newPrice[0].mul(10)))
-    expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10).add(newPrice[1].mul(10)))
-    expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 20)
+      await mineBlock(blockTimestamp + 19)
+      await pair.sync(overrides)
+      await mineBlock()
+
+      const newPrice = encodePrice(expandTo18Decimals(6), expandTo18Decimals(2))
+      expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10).add(newPrice[0].mul(10)))
+      expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10).add(newPrice[1].mul(10)))
+      expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 20)
+    } finally {
+      await provider.send("evm_setAutomine", [true])
+    }
   })
 
   it('feeTo:off', async () => {

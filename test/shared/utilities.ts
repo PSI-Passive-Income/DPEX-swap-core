@@ -4,13 +4,14 @@ import {
   utils,
   Contract
 } from 'ethers'
+import { ethers, network } from 'hardhat'
 
 const PERMIT_TYPEHASH = utils.keccak256(
   utils.toUtf8Bytes('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
 )
 
-export function expandTo18Decimals(n: number): BigNumber {
-  return BigNumber.from(n).mul(BigNumber.from(10).pow(18))
+export function expandTo18Decimals(n: number | string): BigNumber {
+  return utils.parseUnits(n.toString(), 18);
 }
 
 function getDomainSeparator(name: string, tokenAddress: string) {
@@ -21,7 +22,7 @@ function getDomainSeparator(name: string, tokenAddress: string) {
         utils.keccak256(utils.toUtf8Bytes('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)')),
         utils.keccak256(utils.toUtf8Bytes(name)),
         utils.keccak256(utils.toUtf8Bytes('1')),
-        1,
+        31337, // 31337 is hardhat network id
         tokenAddress
       ]
     )
@@ -74,19 +75,9 @@ export async function getApprovalDigest(
   )
 }
 
-export async function mineBlock(provider: providers.Web3Provider, timestamp: number): Promise<void> {
-  await new Promise(async (resolve, reject) => {
-    ;(provider.provider.sendAsync as any)(
-      { jsonrpc: '2.0', method: 'evm_mine', params: [timestamp] },
-      (error: any, result: any): void => {
-        if (error) {
-          reject(error)
-        } else {
-          resolve(result)
-        }
-      }
-    )
-  })
+export async function mineBlock(timestamp?: number): Promise<void> {
+  if (timestamp) await network.provider.send("evm_setNextBlockTimestamp", [timestamp])
+  await network.provider.send("evm_mine")
 }
 
 export function encodePrice(reserve0: BigNumber, reserve1: BigNumber) {

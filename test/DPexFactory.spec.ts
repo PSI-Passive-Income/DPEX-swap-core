@@ -1,6 +1,6 @@
 import chai, { expect } from 'chai'
 import { BigNumber, constants, Contract } from 'ethers'
-import { deployContract, solidity, MockProvider, createFixtureLoader } from 'ethereum-waffle'
+import { waffle } from 'hardhat'
 
 import { factoryFixture } from './shared/fixtures'
 
@@ -8,7 +8,7 @@ import { DPexFactory, DPexPair, Pair } from '../typechain'
 import DPexPairAbi from '../artifacts/contracts/DPexPair.sol/DPexPair.json'
 import PairAbi from '../artifacts/contracts/test/Pair.sol/Pair.json'
 
-chai.use(solidity)
+chai.use(waffle.solidity)
 
 const TEST_ADDRESSES: [string, string] = [
   '0x1000000000000000000000000000000000000000',
@@ -16,7 +16,7 @@ const TEST_ADDRESSES: [string, string] = [
 ]
 
 describe('DPexFactory', () => {
-  const provider = new MockProvider({ ganacheOptions: { gasLimit: 9999999 }})
+  const { provider, deployContract, createFixtureLoader } = waffle;
   const [wallet, other] = provider.getWallets()
   const loadFixture = createFixtureLoader([wallet, other], provider)
 
@@ -64,19 +64,19 @@ describe('DPexFactory', () => {
   it('createPair:gas', async () => {
     const tx = await factory.createPair(...TEST_ADDRESSES)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(2666202)
+    expect(receipt.gasUsed).to.eq(3139615)
   })
 
   it('setFeeTo', async () => {
-    await expect(factory.connect(other).setFeeTo(other.address)).to.be.revertedWith('DPEX: FORBIDDEN')
+    await expect(factory.connect(other).setFeeTo(other.address)).to.be.revertedWith('DPexFactory: FORBIDDEN')
     await factory.setFeeTo(wallet.address)
     expect(await factory.feeTo()).to.eq(wallet.address)
   })
 
   it('setFeeToSetter', async () => {
-    await expect(factory.connect(other).setFeeToSetter(other.address)).to.be.revertedWith('DPEX: FORBIDDEN')
+    await expect(factory.connect(other).setFeeToSetter(other.address)).to.be.revertedWith('DPexFactory: FORBIDDEN')
     await factory.setFeeToSetter(other.address)
     expect(await factory.feeToSetter()).to.eq(other.address)
-    await expect(factory.setFeeToSetter(wallet.address)).to.be.revertedWith('DPEX: FORBIDDEN')
+    await expect(factory.setFeeToSetter(wallet.address)).to.be.revertedWith('DPexFactory: FORBIDDEN')
   })
 })

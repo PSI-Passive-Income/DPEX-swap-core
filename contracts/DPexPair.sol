@@ -1,20 +1,22 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.7.4;
 
-import './interfaces/IDPexPair.sol';
-import './DPexBEP20.sol';
-import './libraries/Math.sol';
-import './libraries/UQ112x112.sol';
-import './interfaces/IBEP20.sol';
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@passive-income/psi-contracts/contracts/abstracts/Governable.sol";
 import './interfaces/IDPexFactory.sol';
+import './interfaces/IDPexPair.sol';
 import './interfaces/IDPexCallee.sol';
+import './DPexBEP20.sol';
+import "./libraries/Math.sol";
+import "./libraries/UQ112x112.sol";
 
-contract DPexPair is IDPexPair, DPexBEP20 {
+contract DPexPair is IDPexPair, Initializable, Governable, DPexBEP20 {
     using SafeMath  for uint;
     using UQ112x112 for uint224;
 
-    uint public override constant MINIMUM_LIQUIDITY = 10**3;
+    uint public constant override MINIMUM_LIQUIDITY = 10**3;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
     address public override factory;
@@ -37,6 +39,14 @@ contract DPexPair is IDPexPair, DPexBEP20 {
         unlocked = 1;
     }
 
+    // called once by the factory at time of deployment
+    function initialize(address _gov_contract, address _token0, address _token1) public override initializer {
+        super.initialize(_gov_contract);
+        factory = msg.sender;
+        token0 = _token0;
+        token1 = _token1;
+    }
+
     function getReserves() public override view 
     returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast) {
         _reserve0 = reserve0;
@@ -47,17 +57,6 @@ contract DPexPair is IDPexPair, DPexBEP20 {
     function _safeTransfer(address token, address to, uint value) private {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(SELECTOR, to, value));
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'DPEX: TRANSFER_FAILED');
-    }
-
-    constructor() {
-        factory = msg.sender;
-    }
-
-    // called once by the factory at time of deployment
-    function initialize(address _token0, address _token1) external override {
-        require(msg.sender == factory, 'DPEX: FORBIDDEN'); // sufficient check
-        token0 = _token0;
-        token1 = _token1;
     }
 
     // update reserves and, on the first call per block, price accumulators
@@ -151,10 +150,23 @@ contract DPexPair is IDPexPair, DPexBEP20 {
         require(amount0Out > 0 || amount1Out > 0, 'DPEX: INSUFFICIENT_OUTPUT_AMOUNT');
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
         require(amount0Out < _reserve0 && amount1Out < _reserve1, 'DPEX: INSUFFICIENT_LIQUIDITY');
+    
+        (uint amount0In, uint amount1In) = _updateOnSwap(_reserve0, _reserve1, amount0Out, amount1Out, to, data);
+        emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
+    }
+    function _updateOnSwap(uint112 _reserve0, uint112 _reserve1, uint amount0Out, uint amount1Out, 
+    address to, bytes calldata data) internal returns(uint amount0In, uint amount1In) {
+        (uint balance0, uint balance1) = _getBalances(amount0Out, amount1Out, to, data);
+        amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
+        amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
+        require(amount0In > 0 || amount1In > 0, 'DPEX: INSUFFICIENT_INPUT_AMOUNT');
+        
+        _ensureBalanceAdjusted(balance0, balance1, amount0In, amount1In, _reserve0, _reserve1);
 
-        uint balance0;
-        uint balance1;
-        { // scope for _token{0,1}, avoids stack too deep errors
+        _update(balance0, balance1, _reserve0, _reserve1);
+    }
+    function _getBalances(uint amount0Out, uint amount1Out, address to, bytes calldata data) internal 
+    returns(uint balance0, uint balance1) {
         address _token0 = token0;
         address _token1 = token1;
         require(to != _token0 && to != _token1, 'DPEX: INVALID_TO');
@@ -163,18 +175,12 @@ contract DPexPair is IDPexPair, DPexBEP20 {
         if (data.length > 0) IDPexCallee(to).dpexCall(msg.sender, amount0Out, amount1Out, data);
         balance0 = IBEP20(_token0).balanceOf(address(this));
         balance1 = IBEP20(_token1).balanceOf(address(this));
-        }
-        uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
-        uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
-        require(amount0In > 0 || amount1In > 0, 'DPEX: INSUFFICIENT_INPUT_AMOUNT');
-        { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
+    }
+    function _ensureBalanceAdjusted(uint balance0, uint balance1, uint amount0In, uint amount1In, 
+    uint112 _reserve0, uint112 _reserve1) internal pure {
         uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(2));
         uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(2));
         require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'DPEX: K');
-        }
-
-        _update(balance0, balance1, _reserve0, _reserve1);
-        emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
     }
 
     // force balances to match reserves

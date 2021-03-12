@@ -1,6 +1,5 @@
 import chai, { expect } from 'chai'
-import { BigNumber, constants, utils } from 'ethers'
-import { solidity, MockProvider, deployContract } from 'ethereum-waffle'
+import { waffle, ethers } from 'hardhat'
 import { ecsign } from 'ethereumjs-util'
 
 import { expandTo18Decimals, getApprovalDigest } from './shared/utilities'
@@ -8,13 +7,14 @@ import { expandTo18Decimals, getApprovalDigest } from './shared/utilities'
 import ERC20 from '../artifacts/contracts/test/ERC20.sol/ERC20.json'
 import { IBEP20 } from '../typechain'
 
-chai.use(solidity)
+chai.use(waffle.solidity)
 
+const { BigNumber, constants, utils } = ethers;
 const TOTAL_SUPPLY = expandTo18Decimals(10000)
 const TEST_AMOUNT = expandTo18Decimals(10)
 
 describe('DPexBEP20', () => {
-  const provider = new MockProvider({ ganacheOptions: { gasLimit: 9999999 }})
+  const { provider, deployContract } = waffle;
   const [wallet, other] = provider.getWallets()
 
   let token: IBEP20
@@ -39,7 +39,7 @@ describe('DPexBEP20', () => {
             ),
             utils.keccak256(utils.toUtf8Bytes(name)),
             utils.keccak256(utils.toUtf8Bytes('1')),
-            1,
+            31337,
             token.address
           ]
         )

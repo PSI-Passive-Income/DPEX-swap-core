@@ -1,10 +1,12 @@
 import { Contract, Wallet } from 'ethers'
 import { providers } from 'ethers'
-import { deployContract } from 'ethereum-waffle'
+import { waffle } from 'hardhat'
 
 import { expandTo18Decimals } from './utilities'
 
 import { DPexFactory, DPexPair, IBEP20 } from '../../typechain'
+import { PSIGovernance } from '@passive-income/psi-contracts/typechain';
+import PSIGovernanceAbi from '@passive-income/psi-contracts/artifacts/contracts/PSIGovernance.sol/PSIGovernance.json'
 import ERC20Abi from '../../artifacts/contracts/test/ERC20.sol/ERC20.json'
 import DPexFactoryAbi from '../../artifacts/contracts/DPexFactory.sol/DPexFactory.json'
 import DPexPairAbi from '../../artifacts/contracts/DPexPair.sol/DPexPair.json'
@@ -14,11 +16,14 @@ interface FactoryFixture {
 }
 
 const overrides = {
-  gasLimit: 9999999
+  gasLimit: 9500000
 }
 
 export async function factoryFixture([wallet]: Wallet[], _: providers.Web3Provider): Promise<FactoryFixture> {
-  const factory = await deployContract(wallet, DPexFactoryAbi, [wallet.address], overrides) as DPexFactory
+  const governance = await waffle.deployContract(wallet, PSIGovernanceAbi, [], overrides) as PSIGovernance
+  await governance.initialize(overrides);
+  const factory = await waffle.deployContract(wallet, DPexFactoryAbi, [], overrides) as DPexFactory
+  await factory.initialize(wallet.address, governance.address, overrides);
   return { factory }
 }
 
@@ -31,8 +36,8 @@ interface PairFixture extends FactoryFixture {
 export async function pairFixture([wallet]: Wallet[], provider: providers.Web3Provider): Promise<PairFixture> {
   const { factory } = await factoryFixture([wallet], provider)
 
-  const tokenA = await deployContract(wallet, ERC20Abi, [expandTo18Decimals(10000)], overrides) as IBEP20
-  const tokenB = await deployContract(wallet, ERC20Abi, [expandTo18Decimals(10000)], overrides) as IBEP20
+  const tokenA = await waffle.deployContract(wallet, ERC20Abi, [expandTo18Decimals(10000)], overrides) as IBEP20
+  const tokenB = await waffle.deployContract(wallet, ERC20Abi, [expandTo18Decimals(10000)], overrides) as IBEP20
 
   await factory.createPair(tokenA.address, tokenB.address, overrides)
   const pairAddress = await factory.getPair(tokenA.address, tokenB.address)

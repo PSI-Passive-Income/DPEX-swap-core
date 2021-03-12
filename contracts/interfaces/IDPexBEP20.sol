@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.4;
 
-import "./IBEP20.sol";
+import '@passive-income/psi-contracts/contracts/interfaces/IBEP20.sol';
 
 interface IDPexBEP20 is IBEP20 {
     function DOMAIN_SEPARATOR() external view returns (bytes32);

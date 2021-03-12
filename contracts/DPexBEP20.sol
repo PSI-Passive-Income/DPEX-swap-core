@@ -2,9 +2,9 @@
 
 pragma solidity ^0.7.4;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import './interfaces/IDPexBEP20.sol';
-import './libraries/SafeMath.sol';
 
 abstract contract DPexBEP20 is IDPexBEP20, Ownable {
     using SafeMath for uint;
