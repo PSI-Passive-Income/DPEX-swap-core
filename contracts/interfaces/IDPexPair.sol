@@ -32,5 +32,5 @@ interface IDPexPair is IDPexBEP20 {
     function skim(address to) external;
     function sync() external;
 
-    function initialize(address _gov_contract, address _token0, address _token1) external;
+    function initialize(address _token0, address _token1) external;
 }

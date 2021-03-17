@@ -172,7 +172,7 @@ describe('DPexPair', () => {
     
     const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(73627)
+    expect(receipt.gasUsed).to.eq(73604)
   })
 
   it('burn', async () => {

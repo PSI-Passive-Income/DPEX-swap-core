@@ -4,7 +4,6 @@ pragma solidity ^0.7.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import "@passive-income/psi-contracts/contracts/abstracts/Governable.sol";
 import './interfaces/IDPexFactory.sol';
 import './interfaces/IDPexPair.sol';
 import './interfaces/IDPexCallee.sol';
@@ -12,7 +11,7 @@ import './DPexBEP20.sol';
 import "./libraries/Math.sol";
 import "./libraries/UQ112x112.sol";
 
-contract DPexPair is IDPexPair, Initializable, Governable, DPexBEP20 {
+contract DPexPair is IDPexPair, Initializable, DPexBEP20 {
     using SafeMath  for uint;
     using UQ112x112 for uint224;
 
@@ -40,8 +39,7 @@ contract DPexPair is IDPexPair, Initializable, Governable, DPexBEP20 {
     }
 
     // called once by the factory at time of deployment
-    function initialize(address _gov_contract, address _token0, address _token1) public override initializer {
-        super.initialize(_gov_contract);
+    function initialize(address _token0, address _token1) public override initializer {
         factory = msg.sender;
         token0 = _token0;
         token1 = _token1;

@@ -3,12 +3,11 @@
 pragma solidity ^0.7.4;
 
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import "@passive-income/psi-contracts/contracts/abstracts/Governable.sol";
 import './interfaces/IDPexFactory.sol';
 import './interfaces/IDPexPair.sol';
 import "./DPexPair.sol";
 
-contract DPexFactory is IDPexFactory, Initializable, Governable {
+contract DPexFactory is IDPexFactory, Initializable {
     bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(DPexPair).creationCode));
     address public override feeTo;
     address public override feeToSetter;
@@ -16,8 +15,7 @@ contract DPexFactory is IDPexFactory, Initializable, Governable {
     mapping(address => mapping(address => address)) public override getPair;
     address[] public override allPairs;
 
-    function initialize(address _feeToSetter, address _gov_contract) public initializer {
-        super.initialize(_gov_contract);
+    function initialize(address _feeToSetter) public initializer {
         feeToSetter = _feeToSetter;
     }
 
@@ -38,7 +36,7 @@ contract DPexFactory is IDPexFactory, Initializable, Governable {
         }
         
         require(pair != address(0), "DPexFactory: ERROR_CREATING_PAIR");
-        IDPexPair(pair).initialize(gov_contract, token0, token1);
+        IDPexPair(pair).initialize(token0, token1);
 
         getPair[token0][token1] = pair;
         getPair[token1][token0] = pair; // populate mapping in the reverse direction

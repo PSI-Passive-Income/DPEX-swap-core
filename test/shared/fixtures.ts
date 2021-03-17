@@ -5,8 +5,6 @@ import { waffle } from 'hardhat'
 import { expandTo18Decimals } from './utilities'
 
 import { DPexFactory, DPexPair, IBEP20 } from '../../typechain'
-import { PSIGovernance } from '@passive-income/psi-contracts/typechain';
-import PSIGovernanceAbi from '@passive-income/psi-contracts/artifacts/contracts/PSIGovernance.sol/PSIGovernance.json'
 import ERC20Abi from '../../artifacts/contracts/test/ERC20.sol/ERC20.json'
 import DPexFactoryAbi from '../../artifacts/contracts/DPexFactory.sol/DPexFactory.json'
 import DPexPairAbi from '../../artifacts/contracts/DPexPair.sol/DPexPair.json'
@@ -20,10 +18,8 @@ const overrides = {
 }
 
 export async function factoryFixture([wallet]: Wallet[], _: providers.Web3Provider): Promise<FactoryFixture> {
-  const governance = await waffle.deployContract(wallet, PSIGovernanceAbi, [], overrides) as PSIGovernance
-  await governance.initialize(overrides);
   const factory = await waffle.deployContract(wallet, DPexFactoryAbi, [], overrides) as DPexFactory
-  await factory.initialize(wallet.address, governance.address, overrides);
+  await factory.initialize(wallet.address, overrides);
   return { factory }
 }
 
