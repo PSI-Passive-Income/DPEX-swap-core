@@ -1,7 +1,7 @@
 {
   "name": "@passive-income/dpex-swap-core",
   "description": "🎛 Core contracts for the dpex protocol",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "homepage": "http://dpex.passive-income.io",
   "private": false,
   "repository": {
