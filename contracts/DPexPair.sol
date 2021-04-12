@@ -175,7 +175,7 @@ contract DPexPair is IDPexPair, Initializable, DPexBEP20 {
         balance1 = IBEP20(_token1).balanceOf(address(this));
     }
     function _ensureBalanceAdjusted(uint balance0, uint balance1, uint amount0In, uint amount1In, 
-    uint112 _reserve0, uint112 _reserve1) internal pure {
+    uint112 _reserve0, uint112 _reserve1) internal view {
         uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(2));
         uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(2));
         require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'DPEX: K');

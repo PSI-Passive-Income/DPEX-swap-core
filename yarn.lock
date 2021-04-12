@@ -1458,10 +1458,10 @@
     "@truffle/hdwallet-provider" "^1.2.1"
     dotenv "^8.2.0"
 
-"@passive-income/psi-contracts@~1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@passive-income/psi-contracts/-/psi-contracts-1.0.2.tgz#9cf6be5fe665f437c6ae2c1fa0ef193307824fe9"
-  integrity sha512-1UvWUP1ahCMceMEQQx94GeAbZRgEGCYxZZeG8Ob1abmCL0d/UdXQOmmqMiBmkyCd60wI4n/w4P7/T9P4LOja0A==
+"@passive-income/psi-contracts@~1.0.5":
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/@passive-income/psi-contracts/-/psi-contracts-1.0.5.tgz#7ef0323049f98c26931ed191c5b8809707795c0f"
+  integrity sha512-gQYAuEuoX2FA/zizPoUQTChSox2NEyjqusKJ4yiIPzKY75sYpd6EnsEKAZ17HyZL0IV2R5vusIRnRb2i4v7Whg==
   dependencies:
     "@openzeppelin/contracts" "^3.3.0-solc-0.7"
     "@openzeppelin/contracts-upgradeable" "^3.3.0-solc-0.7"
