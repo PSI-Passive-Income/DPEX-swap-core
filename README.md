@@ -58,8 +58,8 @@ MAIN_INFURA=https://mainnet.infura.io/v3/<infura_key>
 MAIN_ALCHEMY_URL=https://eth-mainnet.alchemyapi.io/v2/<alchemy_key>
 KOVAN_ALCHEMY_URL=https://eth-kovan.alchemyapi.io/v2/<alchemy_key>
 
-ETHERSCAN_API_TOKEN=<etherscan_api_token>;
-BSC_API_TOKEN=<bscscan_api_token>;;
+ETHERSCAN_API_TOKEN=<etherscan_api_token>
+BSC_API_TOKEN=<bscscan_api_token>
 ```
 
 ### Flatten contracts
